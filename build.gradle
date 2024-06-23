@@ -1,0 +1,161 @@
+/*
+ * User Manual available at https://docs.gradle.org/6.3/userguide/tutorial_java_projects.html
+ */
+
+// Plugins gradle needs to use
+plugins {
+    // Apply the java plugin to add support for Java
+    id 'java'
+
+    // Apply the application plugin to add support for building a CLI application.
+    id 'application'
+
+    // Coverage
+    id 'jacoco'
+
+    // CheckStyle
+    id 'checkstyle'
+
+    // Rerun tests
+    // https://github.com/gradle/test-retry-gradle-plugin
+    id("org.gradle.test-retry") version "1.0.0"
+}
+
+// Declare repository
+repositories {
+    // Use jcenter for resolving dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    jcenter()
+}
+
+// Add dependencies
+dependencies {
+    // This dependency is used by the application.
+    implementation 'com.google.guava:guava:28.2-jre'
+
+    // Use JUnit Jupiter API for testing.
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+
+    // Use JUnit Jupiter Engine for testing.
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.6.0'
+
+    // Include java libraries in folder 'libs'
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+
+    // We use java 11
+    sourceCompatibility = 11
+    targetCompatibility = 11
+}
+
+// Entrypoint for the application
+application {
+    // Define the main class for the application.
+    mainClassName = 'minesweeper.Launch'
+}
+
+sourceSets {
+    // Main implementation without tests
+    main {
+        java {
+            srcDir 'src'
+            exclude 'tud/ai1/minesweeper/test'
+        }
+    }
+
+    // Tests
+    test {
+        java {
+            srcDir 'src'
+            srcDir 'tud'
+        }
+    }
+}
+
+// Advanced settings for tests
+test {
+    // Use junit platform for unit tests
+    // useJUnitPlatform()
+
+    // Retry failed tests twice
+    // https://github.com/gradle/test-retry-gradle-plugin
+    retry {
+        maxRetries = 2
+        maxFailures = 10
+        failOnPassedAfterRetry = false
+    }
+
+    reports {
+        junitXml.enabled = true
+        html.enabled = true
+        html.destination file("${buildDir}/reports/tests/html")
+        junitXml.destination file("${buildDir}/reports/tests/xml")
+    }
+}
+
+// Configuration for jacoco to generate coverage-reports.
+// Ref: https://docs.gradle.org/current/userguide/jacoco_plugin.html
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        csv.enabled true
+        html.destination file("${buildDir}/reports/coverage/html")
+        xml.destination file("${buildDir}/reports/coverage/coverage.xml")
+        csv.destination file("${buildDir}/reports/coverage/coverage.csv")
+    }
+}
+
+// Configuration for checkstyle.
+// Ref: https://docs.gradle.org/current/userguide/checkstyle_plugin.html
+tasks.withType(Checkstyle) {
+    reports {
+        xml.enabled true
+        html.enabled true
+        // html.stylesheet resources.text.fromFile('config/xsl/checkstyle-custom.xsl')
+        html.destination file("${buildDir}/reports/checkstyle/html/index.html");
+        xml.destination file("${buildDir}/reports/checkstyle/checkstyle.xml")
+    }
+}
+
+// Configuration for checkstyle
+// Ref: https://github.com/checkstyle/checkstyle
+checkstyle {
+    // Config is downloaded from https://github.com/checkstyle/checkstyle/blob/master/src/main/resources/google_checks.xml
+    configFile file('config/checkstyle/checkstyle.xml');
+    toolVersion '8.30'
+    ignoreFailures = false
+    maxWarnings = 0
+}
+
+// Define the main class for the application
+mainClassName = 'tud.ai1.minesweeper.Launch'
+
+// Create a zip archive for submitting in moodle.
+// Ref: https://stackoverflow.com/questions/36863456/gradle-task-to-create-a-zip-archive-of-a-directory
+// Ref: https://gist.github.com/nikos/4320123
+// Ref: https://jnorthr.wordpress.com/2014/03/17/gradle-zip-all-feature/
+task zip(type: Zip) {
+    // Copy from project dir.
+    from projectDir
+
+    // Exclude builds, binaries and gradle.
+    exclude 'build/**'
+    exclude 'bin/**'
+    exclude 'gradle/**'
+    exclude '.gradle/**'
+
+    // Exclude some test output.
+    exclude 'test-output.hs'
+
+    // Exclude output zip; otherwise it is a recursive loop.
+    exclude 'SUBMISSION.zip'
+
+    // Create zip archive in project-root.
+    archiveName '../../SUBMISSION.zip'
+}
+
+// Generate javadoc.
+// Ref: https://stackoverflow.com/questions/45997976/how-generate-javadoc-with-gradle
+javadoc {
+    source = sourceSets.test.allJava + sourceSets.test.allJava
+    classpath = configurations.compile
+}
