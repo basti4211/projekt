@@ -1,5 +1,0 @@
-Diese Testdatei
-wird in der Klasse
-FileOperationsTest
-eingelesen.
-
